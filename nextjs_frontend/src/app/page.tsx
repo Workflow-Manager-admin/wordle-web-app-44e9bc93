@@ -234,6 +234,7 @@ export default function Home() {
           status={gameStatus}
           onDone={closeModal}
           onPlayAgain={handlePlayAgain}
+          isOpen={showShare}
         />
       </Modal>
 
