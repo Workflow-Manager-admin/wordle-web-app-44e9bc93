@@ -193,9 +193,7 @@ export default function Home() {
         <GameGrid
           guesses={guesses}
           currentGuess={gameStatus === "playing" ? input : ""}
-          solution={todayWord}
           maxGuesses={MAX_GUESSES}
-          feedbackRowIdx={feedbackRowIdx}
         />
         <div className="min-h-7 mt-1 text-red-500 text-center">
           {errorMsg && <span className="animate-pulse">{errorMsg}</span>}

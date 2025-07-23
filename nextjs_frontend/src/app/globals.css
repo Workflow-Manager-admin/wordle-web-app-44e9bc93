@@ -1,38 +1,90 @@
-@import "tailwindcss";
+/* Add any global styles for your app here */
 
-:root {
-  --background: #fafaff;
-  --foreground: #171717;
-  --accent: #3a3a3c;
-  --primary: #538d4e;
-  --secondary: #b59f3b;
-  --error: #d64545;
+/* -- GameGrid Sticky Top Input Row and Scrollable Rows -- */
+.game-grid-sticky-wrapper {
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  padding-bottom: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  background: transparent;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Sticky input row at the top of the grid */
+.sticky-input-row {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f8fafc;
+  border-bottom: 1px solid #e6e6e6;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #181a24;
-    --foreground: #ededed;
+.sticky-input-row .game-row.active {
+  background: #fffde7;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  border-radius: 6px 6px 0 0;
+}
+
+/* Scrollable area for all other guesses */
+.scrollable-rows {
+  overflow-y: auto;
+  max-height: 250px;
+}
+
+/* Each grid row */
+.game-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: stretch;
+  margin: 4px 0;
+}
+
+/* Letter cell styling. Customize according to theme. */
+.letter-cell {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  margin: 0 2px;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+  border: 2px solid #d3d6da;
+  font-size: 2rem;
+  text-transform: uppercase;
+  border-radius: 5px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.game-row.completed .letter-cell {
+  background-color: #b8e994;
+}
+
+.game-row.active .letter-cell {
+  border-color: #b59f3b;
+}
+
+.letter-cell.empty {
+  border: 2px solid #e6e6e6;
+  color: #bdbdbd;
+}
+
+/* Responsive handling for mobile/small screens */
+@media (max-width: 600px) {
+  .game-grid-sticky-wrapper {
+    max-width: 95vw;
+    min-height: 170px;
   }
-}
-
-body {
-  min-height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-}
-
-/* Animations */
-@keyframes flipIn {
-  0% {transform: rotateX(0deg);}
-  60% {transform: rotateX(90deg);}
-  100% {transform: rotateX(0deg);}
+  .scrollable-rows {
+    max-height: 150px;
+  }
+  .letter-cell {
+    width: 32px;
+    height: 32px;
+    font-size: 1.3rem;
+  }
 }
