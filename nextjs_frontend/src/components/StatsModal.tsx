@@ -13,6 +13,7 @@ type StatsModalProps = {
   lastWord: string;
   guessCount: number;
   onShare: () => void;
+  onPlayAgain?: () => void; // Optional callback for "Play Again"
 };
 
 /**
@@ -24,7 +25,8 @@ export default function StatsModal({
   lastGameStatus,
   lastWord,
   guessCount,
-  onShare
+  onShare,
+  onPlayAgain
 }: StatsModalProps) {
   return (
     <div>
@@ -63,6 +65,15 @@ export default function StatsModal({
               </div>
             ) : (
               <></>
+            )}
+            {(lastGameStatus === "won" || lastGameStatus === "lost") && typeof onPlayAgain === "function" && (
+              <button
+                onClick={onPlayAgain}
+                className="w-full mt-3 bg-[#538d4e] hover:bg-[#3a3a3c] text-[#fff] px-4 py-2 rounded font-semibold"
+                data-testid="play-again-btn"
+              >
+                Play Again
+              </button>
             )}
           </div>
           <button

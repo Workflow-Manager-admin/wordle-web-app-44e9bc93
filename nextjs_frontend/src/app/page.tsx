@@ -150,6 +150,23 @@ export default function Home() {
     }
   }, [errorMsg]);
 
+  // Handler to reset for a new game
+  const handlePlayAgain = () => {
+    // (1) Get a new word
+    const newWord = getTodaysWord(true); // If getTodaysWord can be randomized, else implement a version in gameUtils
+    setTodayWord(newWord);
+    // (2) Reset all states
+    setGuesses([]);
+    setInput("");
+    setGameStatus("playing");
+    setFeedbackRowIdx(null);
+    setErrorMsg(null);
+    // Optionally do not reset stats
+    // (3) Close all overlays
+    setShowStats(false);
+    setShowShare(false);
+  };
+
   return (
     <div className="flex flex-col min-h-screen items-center py-2 bg-[#fafaff]">
       {/* Header */}
@@ -209,6 +226,7 @@ export default function Home() {
             setShowStats(false);
             setTimeout(() => setShowShare(true), 500);
           }}
+          onPlayAgain={handlePlayAgain}
         />
       </Modal>
       <Modal open={showShare} onClose={closeModal}>
