@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: #fafaff;
   --foreground: #171717;
+  --accent: #3a3a3c;
+  --primary: #538d4e;
+  --secondary: #b59f3b;
+  --error: #d64545;
 }
 
 @theme inline {
@@ -14,13 +18,21 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #181a24;
     --foreground: #ededed;
   }
 }
 
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Animations */
+@keyframes flipIn {
+  0% {transform: rotateX(0deg);}
+  60% {transform: rotateX(90deg);}
+  100% {transform: rotateX(0deg);}
 }

@@ -1,100 +1,228 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import GameGrid from "@/components/GameGrid";
+import VirtualKeyboard from "@/components/VirtualKeyboard";
+import Modal from "@/components/Modal";
+import StatsModal from "@/components/StatsModal";
+import ShareModal from "@/components/ShareModal";
+import { getTodaysWord, getLocalStats, updateLocalStats } from "@/lib/gameUtils";
+import { GiSwordSlice } from "react-icons/gi";
+
+/**
+ * Colors defined in request details:
+ *  - Accent: #3a3a3c (used for keyboard, absent)
+ *  - Primary: #538d4e (correct letter)
+ *  - Secondary: #b59f3b (present letter)
+ *
+ * Game config
+ */
+const MAX_GUESSES = 6;
+const WORD_LENGTH = 5;
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  // Game state
+  const [todayWord, setTodayWord] = useState<string>("");
+  const [guesses, setGuesses] = useState<string[]>([]);
+  const [input, setInput] = useState<string>("");
+  const [gameStatus, setGameStatus] = useState<"playing"|"won"|"lost">("playing");
+  const [showStats, setShowStats] = useState<boolean>(false);
+  const [showShare, setShowShare] = useState<boolean>(false);
+  const [feedbackRowIdx, setFeedbackRowIdx] = useState<number | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [stats, setStats] = useState<{
+    gamesPlayed: number;
+    gamesWon: number;
+    streak: number;
+    maxStreak: number;
+    guessDist: number[];
+    lastPlayed: string;
+  } | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // Initialize today's word and stats
+  useEffect(() => {
+    const word = getTodaysWord();
+    setTodayWord(word);
+    setStats(getLocalStats());
+  }, []);
+
+  // Handle submit guess
+  const handleSubmit = useCallback(() => {
+    if (input.length !== WORD_LENGTH) {
+      setErrorMsg("Not enough letters");
+      return;
+    }
+    if (!/^[A-Z]{5}$/.test(input)) {
+      setErrorMsg("Invalid guess");
+      return;
+    }
+    // Check for win
+    if (input === todayWord) {
+      const newGuesses = [...guesses, input];
+      setGuesses(newGuesses);
+      setGameStatus("won");
+      updateLocalStats("won", newGuesses.length);
+      setStats(getLocalStats());
+      setFeedbackRowIdx(newGuesses.length - 1);
+      setTimeout(() => {
+        setShowShare(true);
+      }, 1500);
+      setInput("");
+      return;
+    }
+    // Final guess (lose)
+    if (guesses.length === MAX_GUESSES - 1) {
+      const newGuesses = [...guesses, input];
+      setGuesses(newGuesses);
+      setGameStatus("lost");
+      updateLocalStats("lost", 0);
+      setStats(getLocalStats());
+      setFeedbackRowIdx(newGuesses.length - 1);
+      setTimeout(() => {
+        setShowStats(true);
+      }, 1500);
+      setInput("");
+      return;
+    }
+    // Valid guess, next
+    setGuesses((g) => [...g, input]);
+    setInput("");
+    setFeedbackRowIdx(guesses.length);
+  }, [input, guesses, todayWord]);
+
+  // Handle keyboard input (onscreen and physical)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (gameStatus !== "playing") return;
+      const { key } = event;
+      if (key === "Backspace") {
+        setInput((inp) => inp.slice(0, -1));
+      } else if (key === "Enter") {
+        handleSubmit();
+      } else if (/^[a-zA-Z]$/.test(key) && input.length < WORD_LENGTH) {
+        setInput((inp) => (inp + key.toUpperCase()).slice(0, WORD_LENGTH));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [input, gameStatus, todayWord, guesses, handleSubmit]);
+
+  // Clear feedback highlight after anim
+  useEffect(() => {
+    if (feedbackRowIdx !== null) {
+      const tm = setTimeout(() => {
+        setFeedbackRowIdx(null);
+      }, 1100);
+      return () => clearTimeout(tm);
+    }
+  }, [feedbackRowIdx]);
+
+  // Handle close modal
+  const closeModal = () => {
+    setShowStats(false);
+    setShowShare(false);
+  };
+
+  // Handle letter (onscreen keyboard)
+  const handleLetter = (letter: string) => {
+    if (gameStatus !== "playing") return;
+    if (input.length < WORD_LENGTH) {
+      setInput((inp) => (inp + letter).slice(0, WORD_LENGTH));
+    }
+  };
+  // Handle delete
+  const handleDelete = () => {
+    if (gameStatus !== "playing") return;
+    setInput((inp) => inp.slice(0, -1));
+  };
+
+  // Submit
+  const handleEnter = () => {
+    if (gameStatus !== "playing") return;
+    handleSubmit();
+  };
+
+  // Error message timing
+  useEffect(() => {
+    if (errorMsg) {
+      const timer = setTimeout(() => setErrorMsg(null), 1400);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMsg]);
+
+  return (
+    <div className="flex flex-col min-h-screen items-center py-2 bg-[#fafaff]">
+      {/* Header */}
+      <header className="w-full py-5 border-b border-gray-200 flex justify-center items-center relative">
+        <span className="text-2xl font-bold tracking-widest text-[#3a3a3c] flex items-center gap-2 select-none">
+          <GiSwordSlice className="inline-block text-[#3a3a3c] -mr-1" />
+          WORDLE CLONE
+        </span>
+        <button
+          aria-label="View stats"
+          className="absolute right-8 text-[#b59f3b] hover:text-[#3a3a3c] text-xl font-bold"
+          onClick={() => setShowStats(true)}
+        >
+          <svg height="28" width="28" fill="none" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="4" height="8" rx="1" fill="#b59f3b"/>
+            <rect x="9" y="7" width="4" height="12" rx="1" fill="#3a3a3c"/>
+            <rect x="15" y="4" width="4" height="15" rx="1" fill="#538d4e"/>
+          </svg>
+        </button>
+      </header>
+
+      {/* Game grid section */}
+      <main className="flex flex-1 flex-col justify-start items-center w-full max-w-[390px] px-1 pt-2 pb-8 sm:pb-2">
+        <GameGrid
+          guesses={guesses}
+          currentGuess={gameStatus === "playing" ? input : ""}
+          solution={todayWord}
+          maxGuesses={MAX_GUESSES}
+          feedbackRowIdx={feedbackRowIdx}
+        />
+        <div className="min-h-7 mt-1 text-red-500 text-center">
+          {errorMsg && <span className="animate-pulse">{errorMsg}</span>}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* Keyboard */}
+      <nav className="w-full flex flex-col items-center px-1">
+        <VirtualKeyboard
+          guesses={guesses}
+          solution={todayWord}
+          onLetter={handleLetter}
+          onEnter={handleEnter}
+          onDelete={handleDelete}
+          inputDisabled={gameStatus !== "playing"}
+          currentGuess={input}
+        />
+      </nav>
+
+      {/* Modals */}
+      <Modal open={showStats} onClose={closeModal}>
+        <StatsModal
+          stats={stats}
+          lastGameStatus={gameStatus}
+          lastWord={todayWord}
+          guessCount={guesses.length}
+          onShare={() => {
+            setShowStats(false);
+            setTimeout(() => setShowShare(true), 500);
+          }}
+        />
+      </Modal>
+      <Modal open={showShare} onClose={closeModal}>
+        <ShareModal
+          guesses={guesses}
+          solution={todayWord}
+          status={gameStatus}
+          onDone={closeModal}
+        />
+      </Modal>
+
+      {/* Footer */}
+      <footer className="w-full text-center text-xs text-[#3a3a3c]/80 pt-12 pb-1">
+        Not affiliated with Wordle - For demo use only.
       </footer>
     </div>
   );
