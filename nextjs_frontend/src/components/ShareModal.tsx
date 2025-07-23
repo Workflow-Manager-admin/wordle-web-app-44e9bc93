@@ -32,6 +32,7 @@ type ShareModalProps = {
   solution: string;
   status: "won"|"lost"|"playing";
   onDone: () => void;
+  onPlayAgain?: () => void; // Optional callback for "Play Again"
 };
 
 /**
@@ -42,7 +43,8 @@ export default function ShareModal({
   guesses,
   solution,
   status,
-  onDone
+  onDone,
+  onPlayAgain
 }: ShareModalProps) {
   const [copied, setCopied] = useState(false);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -72,6 +74,16 @@ export default function ShareModal({
       >
         {copied ? "Copied!" : "Copy to clipboard"}
       </button>
+      {/* Show Play Again on game end, if prop provided */}
+      {(status === "won" || status === "lost") && typeof onPlayAgain === "function" && (
+        <button
+          onClick={onPlayAgain}
+          className="w-full bg-[#538d4e] hover:bg-[#3a3a3c] text-white px-4 py-2 rounded font-semibold"
+          data-testid="play-again-btn-share"
+        >
+          Play Again
+        </button>
+      )}
       <button
         className="mt-1 text-[#b59f3b] hover:underline"
         onClick={onDone}

@@ -235,6 +235,7 @@ export default function Home() {
           solution={todayWord}
           status={gameStatus}
           onDone={closeModal}
+          onPlayAgain={handlePlayAgain}
         />
       </Modal>
 
